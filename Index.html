@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeleBot Panel · Termux</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;800&display=swap');
+
+/* ══════════════════════════════════════════════════
+   ROOT VARIABLES
+══════════════════════════════════════════════════ */
+:root {
+  --bg:      #03060d;
+  --bg2:     #060c18;
+  --bg3:     #091422;
+  --panel:   #040a14;
+  --border:  #0a1e35;
+  --bdr2:    #122a45;
+  --bdr3:    #1a3a5c;
+
+  --cyan:    #00e5ff;
+  --green:   #00ff9d;
+  --red:     #ff2055;
+  --yellow:  #ffc400;
+  --purple:  #b44fff;
+  --blue:    #3b9eff;
+
+  --text:    #bdd8f0;
+  --dim:     #3a5570;
+  --dim2:    #527090;
+
+  --gc: 0 0 22px rgba(0,229,255,.28);
+  --gg: 0 0 22px rgba(0,255,157,.28);
+  --gr: 0 0 22px rgba(255,32,85,.28);
+  --gy: 0 0 22px rgba(255,196,0,.22);
+}
+
+/* ══════════════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+
+body {
+  font-family: 'Exo 2', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+}
+
+/* CRT scanline */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,.045) 2px, rgba(0,0,0,.045) 3px
+  );
+  pointer-events: none;
+  z-index: 9500;
+}
+
+/* Ambient radial */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 0% 0%, rgba(0,229,255,.055) 0, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 100% 100%, rgba(0,255,157,.045) 0, transparent 60%),
+    radial-gradient(ellipse 35% 60% at 50% 50%, rgba(0,100,200,.02) 0, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ══════════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════════ */
+header {
+  position: relative; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 52px;
+  background: linear-gradient(180deg, #0b1828 0%, #050e1a 100%);
+  border-bottom: 1px solid var(--bdr2);
+  flex-shrink: 0; overflow: hidden;
+}
+header::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--cyan) 30%, var(--green) 70%, transparent 100%);
+  opacity: .55;
+}
+/* corner accent */
+header::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 120px; height: 100%;
+  background: linear-gradient(90deg, rgba(0,229,255,.06), transparent);
+  pointer-events: none;
+}
+
+/* LOGO */
+.logo { display: flex; align-items: center; gap: 11px; }
+.logo-hex {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; position: relative; flex-shrink: 0;
+}
+.logo-hex::before {
+  content: '';
+  position: absolute; inset: 0;
+  clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  border: 1px solid rgba(0,229,255,.5);
+  background: rgba(0,229,255,.06);
+  box-shadow: 0 0 14px rgba(0,229,255,.2);
+}
+.logo-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 13px; font-weight: 900;
+  letter-spacing: 3px; text-transform: uppercase;
+  background: linear-gradient(90deg, var(--cyan), var(--green));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.logo-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; color: var(--dim2);
+  letter-spacing: 2px; text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* HEADER CENTER — LANG NODES */
+.hdr-center { display: flex; align-items: center; gap: 14px; }
+
+.lang-nodes { display: flex; align-items: center; gap: 5px; }
+.lnode {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 2px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; font-weight: 700; letter-spacing: 1.2px;
+  border: 1px solid currentColor;
+  position: relative; overflow: hidden;
+  transition: all .3s; cursor: default;
+}
+.lnode::before { content:''; position:absolute; inset:0; background:currentColor; opacity:.07; }
+.lnode-dot { width:5px; height:5px; border-radius:50%; background:currentColor; box-shadow: 0 0 6px currentColor; }
+.lnode.py  { color: var(--blue); }
+.lnode.js  { color: var(--yellow); }
+.lnode.sh  { color: var(--green); }
+.lnode.off { opacity:.18; filter:grayscale(1); }
+
+/* HEADER RIGHT */
+.hdr-right { display: flex; align-items: center; gap: 10px; }
+.hdr-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.hstat-lbl { font-family:'Share Tech Mono',monospace; font-size:7px; color:var(--dim); letter-spacing:2px; text-transform:uppercase; }
+.hstat-val { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--cyan); }
+.hstat-val.g { color:var(--green); }
+.hstat-val.y { color:var(--yellow); }
+
+.hdiv { width:1px; height:26px; background:var(--border); }
+
+.srv-badge {
+  display:flex; align-items:center; gap:6px;
+  padding:4px 11px;
+  background:rgba(0,229,255,.04); border:1px solid rgba(0,229,255,.18);
+  border-radius:2px;
+  font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cyan); letter-spacing:1px;
+}
+.pulse-dot {
+  width:5px; height:5px; border-radius:50%;
+  background:var(--green); box-shadow:0 0 7px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.65)} }
+
+/* ══════════════════════════════════════════════════
+   WORKSPACE LAYOUT
+══════════════════════════════════════════════════ */
+.workspace { display:flex; flex:1; overflow:hidden; position:relative; z-index:1; }
+
+/* ══════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════ */
+.sidebar {
+  width:256px;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  flex-shrink:0; position:relative;
+}
+.sidebar::after {
+  content:''; position:absolute; top:0; right:0; bottom:0; width:1px;
+  background:linear-gradient(180deg,transparent,rgba(0,229,255,.18),transparent);
+  pointer-events:none;
+}
+
+/* tabs */
+.stabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg); flex-shrink:0; }
+.stab {
+  flex:1; padding:9px 4px;
+  font-family:'Share Tech Mono',monospace; font-size:8px;
+  letter-spacing:1.5px; text-transform:uppercase;
+  text-align:center; cursor:pointer;
+  color:var(--dim2); border-bottom:2px solid transparent;
+  transition:all .2s;
+}
+.stab.on { color:var(--cyan); border-bottom-color:var(--cyan); background:rgba(0,229,255,.03); }
+.stab:hover:not(.on) { color:var(--text); }
+
+/* quick locs */
+.qlocs {
+  padding:5px 7px; display:flex; flex-wrap:wrap; gap:3px;
+  border-bottom:1px solid var(--border); background:var(--bg); flex-shrink:0;
+}
+.qloc {
+  font-family:'Share Tech Mono',monospace; font-size:8px;
+  padding:2px 7px; background:transparent;
+  border:1px solid var(--border); border-radius:2px;
+  cursor:pointer; color:var(--dim2); letter-spacing:.5px; transition:all .2s;
+}
+.qloc:hover { color:var(--cyan); border-color:var(--cyan); background:rgba(0,229,255,.04); }
+
+/* breadcrumb */
+.breadcrumb {
+  padding:5px 11px;
+  font-family:'Share Tech Mono',monospace; font-size:8px;
+  color:var(--dim2); background:var(--bg);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  letter-spacing:.5px; flex-shrink:0;
+}
+.breadcrumb::before { content:'❯ '; color:var(--green); font-size:7px; }
+.breadcrumb span { color:var(--cyan); cursor:pointer; }
+.breadcrumb span:hover { text-decoration:underline; }
+
+/* file list */
+.flist {
+  flex:1; overflow-y:auto; padding:3px;
+  scrollbar-width:thin; scrollbar-color:var(--bdr2) transparent;
+}
+.flist::-webkit-scrollbar { width:3px; }
+.flist::-webkit-scrollbar-thumb { background:var(--bdr2); border-radius:2px; }
+
+.fitem {
+  display:flex; align-items:center; gap:7px;
+  padding:7px 9px; border-radius:2px; cursor:pointer;
+  transition:all .12s;
+  border:1px solid transparent; border-left:2px solid transparent;
+  margin-bottom:1px;
+}
+.fitem:hover { background:rgba(0,229,255,.04); border-color:var(--border); border-left-color:var(--dim2); }
+.fitem.sel { background:rgba(0,229,255,.07); border-color:var(--bdr2); border-left-color:var(--cyan); }
+.fitem-ico { font-size:12px; flex-shrink:0; width:15px; text-align:center; }
+.fitem-inf { flex:1; min-width:0; }
+.fitem-name {
+  font-family:'Share Tech Mono',monospace; font-size:10.5px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text);
+}
+.fitem.sel .fitem-name { color:var(--cyan); }
+.fitem-meta { font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--dim2); margin-top:1px; }
+.fitem-arr { color:var(--dim); font-size:10px; }
+
+.rbadge {
+  font-family:'Share Tech Mono',monospace; font-size:7px;
+  padding:1px 5px; background:rgba(0,255,157,.07);
+  color:var(--green); border:1px solid rgba(0,255,157,.22);
+  border-radius:2px; white-space:nowrap;
+  animation:blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.back-btn {
+  display:flex; align-items:center; gap:5px;
+  padding:6px 9px; border-radius:2px; cursor:pointer;
+  font-family:'Share Tech Mono',monospace; font-size:9px;
+  color:var(--yellow); transition:all .15s; margin-bottom:2px;
+}
+.back-btn::before { content:'← '; }
+.back-btn:hover { background:rgba(255,196,0,.05); }
+.empty-dir {
+  text-align:center; padding:22px 14px;
+  color:var(--dim2); font-family:'Share Tech Mono',monospace;
+  font-size:9px; line-height:2.2;
+}
+
+/* bots tab */
+#tabBots { flex:1; overflow-y:auto; padding:3px; display:none; }
+.bot-card {
+  padding:9px 10px; border-radius:2px;
+  border:1px solid var(--border); border-left:2px solid var(--dim);
+  margin-bottom:3px; cursor:pointer; transition:all .2s; background:var(--bg);
+}
+.bot-card:hover, .bot-card.on { border-color:var(--bdr2); border-left-color:var(--cyan); background:rgba(0,229,255,.04); }
+.bot-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+.bot-card-name { font-family:'Share Tech Mono',monospace; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:155px; }
+.bot-card-path { font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--dim2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* sidebar bottom */
+.sbar-bot {
+  padding:7px; border-top:1px solid var(--border);
+  background:var(--bg); flex-shrink:0;
+}
+.btn-new {
+  width:100%; background:transparent; color:var(--cyan);
+  border:1px solid rgba(0,229,255,.32);
+  padding:8px; border-radius:2px;
+  font-family:'Orbitron',monospace; font-size:8px; font-weight:700;
+  letter-spacing:2px; cursor:pointer; transition:all .25s;
+  text-transform:uppercase; position:relative; overflow:hidden;
+}
+.btn-new::after {
+  content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,.12),transparent);
+  transition:left .5s;
+}
+.btn-new:hover { background:rgba(0,229,255,.06); box-shadow:var(--gc); }
+.btn-new:hover::after { left:100%; }
+
+/* ══════════════════════════════════════════════════
+   MAIN AREA
+══════════════════════════════════════════════════ */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* toolbar */
+.toolbar {
+  padding:7px 14px; background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px;
+  flex-wrap:wrap; flex-shrink:0;
+}
+.toolbar-path {
+  font-family:'Share Tech Mono',monospace; font-size:9px;
+  color:var(--dim2); flex:1; min-width:0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.5px;
+}
+.toolbar-path::before { content:'FILE › '; color:var(--dim); font-size:8px; }
+.toolbar-path strong { color:var(--cyan); }
+
+/* buttons */
+.btn {
+  border:none; padding:5px 13px; border-radius:2px;
+  font-family:'Share Tech Mono',monospace; font-size:9px; font-weight:700;
+  letter-spacing:1px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:4px;
+  transition:all .2s; white-space:nowrap; text-transform:uppercase;
+}
+.btn:disabled { opacity:.2; cursor:not-allowed; transform:none !important; }
+
+.btn-save { background:transparent; color:var(--cyan);   border:1px solid rgba(0,229,255,.3); }
+.btn-run  { background:transparent; color:var(--green);  border:1px solid rgba(0,255,157,.3); }
+.btn-stop { background:transparent; color:var(--red);    border:1px solid rgba(255,32,85,.35); }
+.btn-del  { background:transparent; color:var(--red);    border:1px solid rgba(255,32,85,.2); padding:5px 9px; }
+
+.btn-save:hover:not(:disabled) { background:rgba(0,229,255,.08); box-shadow:var(--gc); }
+.btn-run:hover:not(:disabled)  { background:rgba(0,255,157,.08); box-shadow:var(--gg); }
+.btn-stop:hover:not(:disabled) { background:rgba(255,32,85,.08); box-shadow:var(--gr); }
+.btn-del:hover:not(:disabled)  { background:rgba(255,32,85,.08); }
+
+/* ══════════════════════════════════════════════════
+   EDITOR ZONE
+══════════════════════════════════════════════════ */
+.editor-zone { flex:1; display:flex; overflow:hidden; }
+
+/* No file placeholder */
+.no-file {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:13px;
+  color:var(--dim2); position:relative; overflow:hidden;
+}
+.nf-grid {
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.022) 1px, transparent 1px);
+  background-size:38px 38px; pointer-events:none;
+}
+/* grid fade edges */
+.nf-grid::after {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse 60% 60% at 50% 50%, transparent 30%, var(--bg) 100%);
+}
+.nf-ico { font-size:46px; opacity:.1; filter:grayscale(1); position:relative; z-index:1; }
+.no-file h2 {
+  font-family:'Orbitron',monospace; font-size:12px; font-weight:900;
+  letter-spacing:4px; text-transform:uppercase; color:var(--dim2);
+  position:relative; z-index:1;
+}
+.no-file p {
+  font-family:'Share Tech Mono',monospace; font-size:9.5px;
+  text-align:center; line-height:2.2; color:var(--dim);
+  max-width:260px; position:relative; z-index:1;
+}
+.no-file kbd {
+  background:var(--bg3); border:1px solid var(--bdr2);
+  border-radius:2px; padding:1px 6px;
+  font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--cyan);
+}
+
+/* editor with line nums */
+.editor-wrap { flex:1; display:flex; overflow:hidden; background:var(--bg); }
+.line-nums {
+  padding:14px 0; background:var(--bg2);
+  border-right:1px solid var(--border);
+  min-width:42px; text-align:right;
+  font-family:'Share Tech Mono',monospace; font-size:12px; line-height:1.75;
+  color:var(--dim); overflow:hidden; user-select:none; flex-shrink:0;
+}
+.line-nums span { display:block; padding:0 9px; }
+
+textarea.editor {
+  flex:1; background:transparent; color:var(--text);
+  font-family:'Share Tech Mono',monospace; font-size:12.5px; line-height:1.75;
+  padding:14px 16px; border:none; outline:none; resize:none; tab-size:4;
+  overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--bdr2) transparent;
+  caret-color:var(--cyan);
+}
+textarea.editor::selection { background:rgba(0,229,255,.14); }
+textarea.editor::-webkit-scrollbar { width:4px; }
+textarea.editor::-webkit-scrollbar-thumb { background:var(--bdr2); border-radius:2px; }
+
+/* ══════════════════════════════════════════════════
+   BOTTOM PANELS (LOG + TERMINAL)
+══════════════════════════════════════════════════ */
+.bottom-panels {
+  height:185px; display:flex;
+  border-top:1px solid var(--border); flex-shrink:0;
+}
+
+/* shared panel */
+.panel { display:flex; flex-direction:column; overflow:hidden; }
+.log-panel { flex:1; background:var(--panel); border-right:1px solid var(--border); }
+.term-panel { width:370px; background:var(--panel); flex-shrink:0; }
+
+.panel-hdr {
+  padding:5px 11px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--border); background:var(--bg2); flex-shrink:0;
+}
+.panel-title {
+  font-family:'Share Tech Mono',monospace; font-size:8px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase;
+  color:var(--dim2); display:flex; align-items:center; gap:6px;
+}
+.pdot { width:5px; height:5px; border-radius:50%; background:var(--dim); }
+.pdot.live { background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 1.4s infinite; }
+.pdot.term-c { background:var(--yellow); box-shadow:0 0 6px var(--yellow); }
+
+.panel-body {
+  flex:1; overflow-y:auto; padding:5px 11px;
+  font-family:'Share Tech Mono',monospace; font-size:10.5px; line-height:1.8;
+  scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+}
+.panel-body::-webkit-scrollbar { width:3px; }
+.panel-body::-webkit-scrollbar-thumb { background:var(--bdr2); border-radius:2px; }
+
+/* log rows */
+.lrow { display:flex; gap:8px; margin-bottom:1px; }
+.lt { color:var(--dim); flex-shrink:0; font-size:9px; }
+.lm { color:#3e5e70; }
+.lm.ok   { color:var(--green); }
+.lm.err  { color:var(--red); }
+.lm.warn { color:var(--yellow); }
+.lempty {
+  color:var(--dim2); font-family:'Share Tech Mono',monospace;
+  font-size:9px; text-align:center; padding:20px; line-height:2.2;
+}
+
+/* clear btn */
+.btn-clr {
+  background:transparent; color:var(--dim2);
+  border:1px solid var(--border); padding:2px 7px;
+  font-size:7px; letter-spacing:1px; text-transform:uppercase;
+  border-radius:2px; cursor:pointer;
+  font-family:'Share Tech Mono',monospace; transition:all .2s;
+}
+.btn-clr:hover { color:var(--text); border-color:var(--bdr2); }
+
+/* ═══ TERMINAL ════ */
+.term-body {
+  flex:1; overflow-y:auto; padding:5px 10px;
+  font-family:'Share Tech Mono',monospace; font-size:10.5px; line-height:1.75;
+  scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+}
+.term-body::-webkit-scrollbar { width:3px; }
+.term-body::-webkit-scrollbar-thumb { background:var(--bdr2); border-radius:2px; }
+
+.tline { margin-bottom:2px; word-break:break-all; }
+.tps   { color:var(--green); }
+.tout  { color:#3a5060; }
+.tout.ok  { color:var(--green); }
+.tout.err { color:var(--red); }
+.tout.hl  { color:var(--text); }
+.tout.sys { color:var(--yellow); }
+.tout.dim { color:var(--dim2); }
+
+.term-input-row {
+  display:flex; align-items:center; gap:6px;
+  padding:5px 10px; border-top:1px solid var(--border);
+  background:var(--bg2); flex-shrink:0;
+}
+.term-ps-lbl {
+  color:var(--green); font-family:'Share Tech Mono',monospace;
+  font-size:10.5px; flex-shrink:0; white-space:nowrap;
+}
+.term-in {
+  flex:1; background:transparent; border:none; outline:none;
+  color:var(--cyan); font-family:'Share Tech Mono',monospace;
+  font-size:10.5px; caret-color:var(--green);
+}
+@keyframes cblink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+
+/* ══════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════ */
+.overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.82);
+  backdrop-filter:blur(12px);
+  z-index:1000; display:none;
+  align-items:center; justify-content:center;
+}
+.overlay.show { display:flex; }
+
+.modal {
+  background:var(--bg2); border:1px solid var(--bdr3);
+  border-radius:3px; padding:24px; width:350px;
+  box-shadow:0 0 60px rgba(0,0,0,.9), 0 0 30px rgba(0,229,255,.05);
+  position:relative; overflow:hidden;
+}
+.modal::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--cyan), var(--green), transparent);
+}
+.modal h3 {
+  font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+  letter-spacing:2.5px; text-transform:uppercase; color:var(--cyan); margin-bottom:6px;
+}
+.modal p { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim2); margin-bottom:12px; line-height:1.9; }
+.modal input {
+  width:100%; background:var(--bg); border:1px solid var(--bdr2);
+  border-radius:2px; padding:9px 11px; color:var(--cyan);
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  outline:none; margin-bottom:11px; transition:border-color .2s; letter-spacing:.5px;
+}
+.modal input:focus { border-color:var(--cyan); box-shadow:0 0 8px rgba(0,229,255,.1); }
+.modal-dir {
+  font-family:'Share Tech Mono',monospace; font-size:8px; color:var(--dim2);
+  margin-bottom:12px; padding:5px 9px; background:var(--bg);
+  border-radius:2px; border:1px solid var(--border); letter-spacing:.5px;
+}
+.mbtns { display:flex; gap:7px; justify-content:flex-end; }
+.btn-cancel { background:transparent; color:var(--dim2); border:1px solid var(--bdr2); }
+.btn-cancel:hover { background:var(--bg3); color:var(--text); }
+.btn-ok {
+  background:transparent; color:var(--cyan);
+  border:1px solid rgba(0,229,255,.38); letter-spacing:1.5px;
+}
+.btn-ok:hover { background:rgba(0,229,255,.07); box-shadow:var(--gc); }
+
+/* confirm */
+.confirm-box {
+  background:var(--bg2); border:1px solid rgba(255,32,85,.32);
+  border-radius:3px; padding:24px; width:305px;
+  text-align:center; position:relative; overflow:hidden;
+  box-shadow:0 0 50px rgba(255,32,85,.1);
+}
+.confirm-box::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--red), transparent);
+}
+.confirm-box .ci { font-size:34px; margin-bottom:9px; display:block; }
+.confirm-box h3 {
+  font-family:'Orbitron',monospace; font-size:11px; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase; margin-bottom:7px; color:var(--red);
+}
+.confirm-box p {
+  font-family:'Share Tech Mono',monospace; font-size:9px;
+  color:var(--dim2); margin-bottom:18px; line-height:1.9;
+}
+.btn-danger { background:rgba(255,32,85,.1); color:var(--red); border:1px solid rgba(255,32,85,.4); }
+.btn-danger:hover { background:rgba(255,32,85,.2); box-shadow:var(--gr); }
+
+/* ══════════════════════════════════════════════════
+   TOASTS
+══════════════════════════════════════════════════ */
+.toasts {
+  position:fixed; bottom:16px; right:16px;
+  z-index:9999; display:flex; flex-direction:column; gap:5px;
+}
+.toast {
+  background:var(--bg2); border:1px solid var(--bdr2); border-radius:2px;
+  padding:8px 14px; font-family:'Share Tech Mono',monospace; font-size:10px;
+  display:flex; align-items:center; gap:7px; min-width:200px;
+  letter-spacing:.5px; animation:tin .25s ease;
+  position:relative; overflow:hidden;
+}
+.toast::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:currentColor; }
+.toast.ok  { border-color:rgba(0,255,157,.25);  color:var(--green); }
+.toast.err { border-color:rgba(255,32,85,.25);  color:var(--red); }
+.toast.inf { border-color:rgba(0,229,255,.25);  color:var(--cyan); }
+@keyframes tin  { from{transform:translateX(110%);opacity:0} to{transform:translateX(0);opacity:1} }
+@keyframes tout { from{transform:translateX(0);opacity:1} to{transform:translateX(110%);opacity:0} }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-hex">🤖</div>
+    <div>
+      <div class="logo-name">TeleBot Panel</div>
+      <div class="logo-sub">Termux · Bot Manager · v2.1</div>
+    </div>
+  </div>
+
+  <div class="hdr-center">
+    <div class="lang-nodes" id="langNodes">
+      <div class="lnode py"  title="Python 3"><span class="lnode-dot"></span>PY3</div>
+      <div class="lnode js off" title="Node.js"><span class="lnode-dot"></span>NODE</div>
+      <div class="lnode sh off" title="Shell"><span class="lnode-dot"></span>SH</div>
+    </div>
+    <div class="hdiv"></div>
+    <div class="hdr-stat">
+      <span class="hstat-lbl">Running</span>
+      <span class="hstat-val g" id="statRun">0</span>
+    </div>
+    <div class="hdiv"></div>
+    <div class="hdr-stat">
+      <span class="hstat-lbl">Status</span>
+      <span class="hstat-val y" id="statStatus">READY</span>
+    </div>
+  </div>
+
+  <div class="hdr-right">
+    <div class="srv-badge"><div class="pulse-dot"></div>localhost:5000</div>
+  </div>
+</header>
+
+<!-- ═══ WORKSPACE ════════════════════════════════════ -->
+<div class="workspace">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="stabs">
+      <div class="stab on" id="tab1" onclick="switchTab('browse')">📂 BROWSE</div>
+      <div class="stab"    id="tab2" onclick="switchTab('bots')">🤖 BOTS</div>
+    </div>
+
+    <!-- BROWSE TAB -->
+    <div id="tabBrowse" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+      <div class="qlocs" id="quickLocs"></div>
+      <div class="breadcrumb" id="breadcrumb">~</div>
+      <div class="flist" id="fileList"><div class="empty-dir">[ LOADING... ]</div></div>
+    </div>
+
+    <!-- BOTS TAB -->
+    <div id="tabBots">
+      <div style="padding:6px 11px 3px;font-family:'Share Tech Mono',monospace;font-size:7px;
+                  color:var(--dim2);letter-spacing:2px;text-transform:uppercase;
+                  border-bottom:1px solid var(--border)">[ OPENED FILES ]</div>
+      <div id="botsList" style="padding:3px;overflow-y:auto;flex:1"></div>
+    </div>
+
+    <div class="sbar-bot">
+      <button class="btn-new" onclick="showNewModal()">+ CIPTA FAIL BOT BARU</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <span class="toolbar-path" id="toolbarPath">
+        <span style="color:var(--dim)">Pilih fail dari sidebar</span>
+      </span>
+      <button class="btn btn-save" id="btnSave" onclick="saveFile()" disabled>💾 SAVE</button>
+      <button class="btn btn-run"  id="btnRun"  onclick="runBot()"  disabled>▶ RUN</button>
+      <button class="btn btn-stop" id="btnStop" onclick="stopBot()" style="display:none">■ STOP</button>
+      <button class="btn btn-del"  id="btnDel"  onclick="askDelete()" disabled>🗑</button>
+    </div>
+
+    <!-- EDITOR ZONE -->
+    <div class="editor-zone" id="editorZone">
+      <!-- Placeholder -->
+      <div class="no-file" id="noFile" style="flex:1">
+        <div class="nf-grid"></div>
+        <div class="nf-ico">🐍</div>
+        <h2>TELEBOT PANEL</h2>
+        <p>Browse folder di sidebar<br>Pilih fail <kbd>.py</kbd> untuk edit &amp; jalankan bot anda</p>
+      </div>
+      <!-- Editor -->
+      <div class="editor-wrap" id="editorWrap" style="display:none">
+        <div class="line-nums" id="lineNums"><span>1</span></div>
+        <textarea class="editor" id="editor" spellcheck="false"
+          oninput="dirty=true;updateLineNums()"
+          onkeydown="editorKey(event)"
+          onscroll="syncScroll()"></textarea>
+      </div>
+    </div>
+
+    <!-- BOTTOM PANELS -->
+    <div class="bottom-panels">
+
+      <!-- LOG -->
+      <div class="panel log-panel">
+        <div class="panel-hdr">
+          <span class="panel-title"><span class="pdot" id="logDot"></span>BOT LOG OUTPUT</span>
+          <button class="btn-clr" onclick="clearLog()">CLEAR</button>
+        </div>
+        <div class="panel-body" id="logBody">
+          <div class="lempty">[ Jalankan bot untuk lihat log ]</div>
+        </div>
+      </div>
+
+      <!-- TERMINAL -->
+      <div class="panel term-panel">
+        <div class="panel-hdr">
+          <span class="panel-title"><span class="pdot term-c"></span>TERMINAL</span>
+          <button class="btn-clr" onclick="clearTerm()">CLEAR</button>
+        </div>
+        <div class="term-body" id="termBody"></div>
+        <div class="term-input-row">
+          <span class="term-ps-lbl" id="termPsLbl">~/$ </span>
+          <input type="text" class="term-in" id="termIn"
+            placeholder="taip arahan..."
+            onkeydown="termKey(event)"
+            autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+      </div>
+
+    </div><!-- /bottom-panels -->
+  </main>
+</div><!-- /workspace -->
+
+<!-- ═══ MODAL: NEW FILE ═══════════════════════════════ -->
+<div class="overlay" id="modalNew">
+  <div class="modal">
+    <h3>NEW BOT FILE</h3>
+    <p>Fail akan dicipta dalam folder semasa yang anda sedang browse.</p>
+    <div class="modal-dir" id="newDir">📁 ~</div>
+    <input type="text" id="newName" placeholder="nama_bot.py"
+      onkeydown="if(event.key==='Enter')doCreate()">
+    <div class="mbtns">
+      <button class="btn btn-cancel" onclick="hideNew()">BATAL</button>
+      <button class="btn btn-ok" onclick="doCreate()">CIPTA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: CONFIRM DELETE ═══════════════════════════ -->
+<div class="overlay" id="modalDel">
+  <div class="confirm-box">
+    <span class="ci">⚠</span>
+    <h3>PADAM FAIL?</h3>
+    <p id="delTxt">Fail ini akan dipadam secara kekal.</p>
+    <div class="mbtns" style="justify-content:center;gap:9px">
+      <button class="btn btn-cancel" onclick="hideDel()">BATAL</button>
+      <button class="btn btn-danger" onclick="doDel()">PADAM</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOASTS ════════════════════════════════════════ -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let curPath    = null;
+let curDir     = null;
+let dirty      = false;
+let running    = {};      // path -> true
+let opened     = {};      // path -> name
+let logTimer   = null;
+let termHist   = [];
+let termIdx    = -1;
+let termCwd    = '~';
+
+/* ═══════════════════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════════════════ */
+function switchTab(t) {
+  const isBrowse = t === 'browse';
+  document.getElementById('tabBrowse').style.display = isBrowse ? 'flex' : 'none';
+  document.getElementById('tabBots').style.display   = isBrowse ? 'none' : 'block';
+  document.getElementById('tab1').className = 'stab' + (isBrowse ? ' on' : '');
+  document.getElementById('tab2').className = 'stab' + (isBrowse ? '' : ' on');
+  if (!isBrowse) renderBots();
+}
+
+/* ═══════════════════════════════════════════════════════
+   BROWSE
+═══════════════════════════════════════════════════════ */
+async function browse(path) {
+  try {
+    const r = await fetch(`/api/browse?path=${encodeURIComponent(path)}`);
+    const d = await r.json();
+    if (d.error) { toast('❌ ' + d.error, 'err'); return; }
+    curDir = d.current;
+    renderBreadcrumb(d.current, d.home);
+    renderFileList(d.items, d.parent);
+  } catch(e) { toast('❌ Tak dapat sambung server', 'err'); }
+}
+
+function renderBreadcrumb(path, home) {
+  const display = path.startsWith(home) ? '~' + path.slice(home.length) : path;
+  const parts   = display.split('/').filter(p => p && p !== '~');
+  let built = home;
+  let html  = `<span onclick="browse('${e(home)}')">~</span>`;
+  parts.forEach(p => {
+    built += '/' + p;
+    const b = built;
+    html += ` / <span onclick="browse('${e(b)}')">${p}</span>`;
+  });
+  document.getElementById('breadcrumb').innerHTML = html;
+}
+
+function renderFileList(items, parent) {
+  const el = document.getElementById('fileList');
+  let html = '';
+  if (parent !== null)
+    html += `<div class="back-btn" onclick="browse('${e(parent)}')">Kembali</div>`;
+  if (!items.length)
+    html += `<div class="empty-dir">[ ${parent ? 'FOLDER KOSONG' : 'TIADA FAIL .PY'} ]</div>`;
+
+  items.forEach(item => {
+    if (item.type === 'dir') {
+      html += `<div class="fitem" onclick="browse('${e(item.path)}')">
+        <span class="fitem-ico">📁</span>
+        <div class="fitem-inf"><div class="fitem-name">${item.name}</div></div>
+        <span class="fitem-arr">›</span>
+      </div>`;
+    } else {
+      const sel = item.path === curPath ? ' sel' : '';
+      const run = running[item.path] ? '<span class="rbadge">● RUN</span>' : '';
+      const ext = item.name.split('.').pop().toLowerCase();
+      const ico = ext==='py'?'🐍':ext==='js'?'📜':ext==='sh'?'⚙':'📄';
+      html += `<div class="fitem${sel}" onclick="openFile('${e(item.path)}','${e(item.name)}')">
+        <span class="fitem-ico">${ico}</span>
+        <div class="fitem-inf">
+          <div class="fitem-name">${item.name}</div>
+          <div class="fitem-meta">${item.modified} · ${fmtSz(item.size)}</div>
+        </div>
+        ${run}
+      </div>`;
+    }
+  });
+  el.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════
+   QUICK LOCATIONS
+═══════════════════════════════════════════════════════ */
+async function loadLocs() {
+  try {
+    const r = await fetch('/api/locations');
+    const d = await r.json();
+    document.getElementById('quickLocs').innerHTML = d.locations.map(l =>
+      `<div class="qloc" onclick="browse('${e(l.path)}')">${l.label}</div>`
+    ).join('');
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════════════════
+   OPEN FILE
+═══════════════════════════════════════════════════════ */
+async function openFile(path, name) {
+  if (dirty && curPath) {
+    if (!confirm(`Perubahan tidak disimpan pada "${curPath.split('/').pop()}". Teruskan?`)) return;
+  }
+  try {
+    const r = await fetch('/api/file/read', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path})
+    });
+    const d = await r.json();
+    if (d.error) { toast('❌ ' + d.error, 'err'); return; }
+
+    curPath = path;
+    dirty   = false;
+    opened[path] = d.name;
+
+    document.getElementById('editor').value = d.content;
+    document.getElementById('editorWrap').style.display = 'flex';
+    document.getElementById('noFile').style.display     = 'none';
+    document.getElementById('toolbarPath').innerHTML    = `<strong>${d.name}</strong>`;
+    document.getElementById('btnSave').disabled = false;
+    document.getElementById('btnRun').disabled  = false;
+    document.getElementById('btnDel').disabled  = false;
+
+    updateBotBtns();
+    updateLineNums();
+    updateLangNodes();
+    startLogPoll();
+    if (curDir) browse(curDir);
+    termPrint(`[ Dibuka: ${path} ]`, 'ok');
+  } catch(err) { toast('❌ Gagal buka fail', 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SAVE
+═══════════════════════════════════════════════════════ */
+async function saveFile() {
+  if (!curPath) return;
+  try {
+    const r = await fetch('/api/file/save', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: curPath, content: document.getElementById('editor').value})
+    });
+    const d = await r.json();
+    if (d.success) { dirty = false; toast('✅ Fail disimpan!', 'ok'); }
+    else toast('❌ ' + d.error, 'err');
+  } catch(e) { toast('❌ Gagal save', 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   NEW FILE
+═══════════════════════════════════════════════════════ */
+function showNewModal() {
+  document.getElementById('newDir').textContent  = '📁 ' + (curDir || '~');
+  document.getElementById('newName').value       = '';
+  document.getElementById('modalNew').classList.add('show');
+  setTimeout(() => document.getElementById('newName').focus(), 100);
+}
+function hideNew() { document.getElementById('modalNew').classList.remove('show'); }
+
+async function doCreate() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) { toast('⚠️ Masukkan nama fail', 'err'); return; }
+  try {
+    const r = await fetch('/api/file/new', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({folder: curDir || '~', name})
+    });
+    const d = await r.json();
+    if (d.success) {
+      hideNew(); toast('✅ Fail berjaya dicipta!', 'ok');
+      if (curDir) browse(curDir);
+      openFile(d.path, d.name);
+    } else toast('❌ ' + d.error, 'err');
+  } catch(e) { toast('❌ Gagal cipta fail', 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DELETE
+═══════════════════════════════════════════════════════ */
+let pendDel = null;
+function askDelete() {
+  if (!curPath) return;
+  pendDel = curPath;
+  document.getElementById('delTxt').textContent = `"${curPath.split('/').pop()}" akan dipadam secara kekal.`;
+  document.getElementById('modalDel').classList.add('show');
+}
+function hideDel() { document.getElementById('modalDel').classList.remove('show'); pendDel = null; }
+
+async function doDel() {
+  const path = pendDel; hideDel();
+  try {
+    const r = await fetch('/api/file/delete', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path})
+    });
+    const d = await r.json();
+    if (d.success) {
+      toast('🗑 Fail dipadam', 'ok');
+      delete opened[path];
+      curPath = null; dirty = false;
+      document.getElementById('editorWrap').style.display = 'none';
+      document.getElementById('noFile').style.display     = 'flex';
+      document.getElementById('toolbarPath').innerHTML    = '<span style="color:var(--dim)">Pilih fail dari sidebar</span>';
+      ['btnSave','btnRun','btnDel'].forEach(id => document.getElementById(id).disabled = true);
+      document.getElementById('btnStop').style.display = 'none';
+      document.getElementById('btnRun').style.display  = 'inline-flex';
+      stopLogPoll(); clearLogUI(); updateLangNodes();
+      if (curDir) browse(curDir);
+    } else toast('❌ ' + d.error, 'err');
+  } catch(e) { toast('❌ Gagal padam', 'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RUN / STOP
+═══════════════════════════════════════════════════════ */
+async function runBot() {
+  if (!curPath) return;
+  await saveFile();
+  try {
+    const r = await fetch('/api/bot/run', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: curPath})
+    });
+    const d = await r.json();
+    if (d.success) {
+      running[curPath] = true;
+      toast('🚀 Bot dijalankan!', 'ok');
+      updateBotBtns(); updateStats(); startLogPoll();
+      if (curDir) browse(curDir);
+      termPrint(`[ Bot ON: ${curPath.split('/').pop()} · PID ${d.pid} ]`, 'ok');
+    } else toast('⚠️ ' + d.error, 'err');
+  } catch(e) { toast('❌ Gagal jalankan bot', 'err'); }
+}
+
+async function stopBot() {
+  if (!curPath) return;
+  try {
+    const r = await fetch('/api/bot/stop', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: curPath})
+    });
+    const d = await r.json();
+    if (d.success) {
+      delete running[curPath];
+      toast('🛑 Bot dihentikan', 'ok');
+      updateBotBtns(); updateStats();
+      if (curDir) browse(curDir);
+      termPrint(`[ Bot OFF: ${curPath.split('/').pop()} ]`, 'err');
+    } else toast('⚠️ ' + d.error, 'err');
+  } catch(e) { toast('❌ Gagal henti bot', 'err'); }
+}
+
+function updateBotBtns() {
+  const on = curPath && running[curPath];
+  document.getElementById('btnRun').style.display  = on ? 'none' : 'inline-flex';
+  document.getElementById('btnStop').style.display = on ? 'inline-flex' : 'none';
+  document.getElementById('logDot').className = 'pdot' + (on ? ' live' : '');
+  document.getElementById('statStatus').textContent  = on ? 'BOT ON' : 'READY';
+  document.getElementById('statStatus').style.color  = on ? 'var(--green)' : 'var(--yellow)';
+}
+
+function updateStats() {
+  document.getElementById('statRun').textContent = Object.keys(running).length;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATUS POLL
+═══════════════════════════════════════════════════════ */
+async function pollStatus() {
+  try {
+    const r = await fetch('/api/bot/status');
+    const d = await r.json();
+    running = {};
+    Object.keys(d.running || {}).forEach(p => { running[p] = true; });
+    updateBotBtns(); updateStats();
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════════════════
+   LOG POLL
+═══════════════════════════════════════════════════════ */
+function startLogPoll() { stopLogPoll(); fetchLog(); logTimer = setInterval(fetchLog, 1500); }
+function stopLogPoll()  { if (logTimer) { clearInterval(logTimer); logTimer = null; } }
+
+async function fetchLog() {
+  if (!curPath) return;
+  try {
+    const r = await fetch('/api/bot/logs', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({path: curPath})
+    });
+    const d = await r.json();
+    renderLog(d.logs || []);
+  } catch(e) {}
+}
+
+function renderLog(logs) {
+  const el = document.getElementById('logBody');
+  if (!logs.length) { el.innerHTML = '<div class="lempty">[ LOG KOSONG ]</div>'; return; }
+  el.innerHTML = logs.map(l => {
+    const cls = /error|Error|Traceback/i.test(l.msg) ? 'err'
+              : /🚀|✅|berjalan/i.test(l.msg) ? 'ok'
+              : /warn|Warn/i.test(l.msg) ? 'warn' : '';
+    return `<div class="lrow"><span class="lt">[${l.time}]</span><span class="lm ${cls}">${eHtml(l.msg)}</span></div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog()   { document.getElementById('logBody').innerHTML = '<div class="lempty">[ LOG DIBERSIHKAN ]</div>'; }
+function clearLogUI() { document.getElementById('logBody').innerHTML = '<div class="lempty">[ Jalankan bot untuk lihat log ]</div>'; }
+
+/* ═══════════════════════════════════════════════════════
+   BOTS LIST
+═══════════════════════════════════════════════════════ */
+function renderBots() {
+  const el = document.getElementById('botsList');
+  const paths = Object.keys(opened);
+  if (!paths.length) {
+    el.innerHTML = '<div style="text-align:center;padding:22px;color:var(--dim2);font-family:\'Share Tech Mono\',monospace;font-size:9px">[ TIADA FAIL DIBUKA ]</div>';
+    return;
+  }
+  el.innerHTML = paths.map(p => {
+    const nm = opened[p];
+    const on = running[p];
+    return `<div class="bot-card ${p===curPath?'on':''}" onclick="openFile('${e(p)}','${e(nm)}');switchTab('browse')">
+      <div class="bot-card-top">
+        <span class="bot-card-name">🐍 ${nm}</span>
+        ${on ? '<span class="rbadge">● RUN</span>' : ''}
+      </div>
+      <div class="bot-card-path">${p}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   LANG NODES
+═══════════════════════════════════════════════════════ */
+function updateLangNodes() {
+  const paths = Object.keys(opened);
+  document.querySelector('.lnode.py').classList.toggle('off', !paths.some(p => p.endsWith('.py')));
+  document.querySelector('.lnode.js').classList.toggle('off', !paths.some(p => p.endsWith('.js')));
+  document.querySelector('.lnode.sh').classList.toggle('off', !paths.some(p => p.endsWith('.sh')));
+}
+
+/* ═══════════════════════════════════════════════════════
+   EDITOR HELPERS
+═══════════════════════════════════════════════════════ */
+function updateLineNums() {
+  const lines = document.getElementById('editor').value.split('\n').length;
+  let html = '';
+  for (let i = 1; i <= lines; i++) html += `<span>${i}</span>`;
+  document.getElementById('lineNums').innerHTML = html;
+}
+function syncScroll() {
+  document.getElementById('lineNums').scrollTop = document.getElementById('editor').scrollTop;
+}
+function editorKey(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const t = e.target, s = t.selectionStart, en = t.selectionEnd;
+    t.value = t.value.substring(0, s) + '    ' + t.value.substring(en);
+    t.selectionStart = t.selectionEnd = s + 4;
+    updateLineNums();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveFile(); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   TERMINAL
+═══════════════════════════════════════════════════════ */
+function termPrint(msg, cls = '') {
+  const el  = document.getElementById('termBody');
+  const div = document.createElement('div');
+  div.className = 'tline';
+  div.innerHTML = `<span class="tout ${cls}">${eHtml(msg)}</span>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function termPrintCmd(cmd) {
+  const el  = document.getElementById('termBody');
+  const div = document.createElement('div');
+  div.className = 'tline';
+  div.innerHTML = `<span class="tps">${eHtml(termCwd)}$</span> <span class="tout hl">${eHtml(cmd)}</span>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function termKey(ev) {
+  if (ev.key === 'Enter') {
+    const inp = document.getElementById('termIn');
+    const cmd = inp.value.trim();
+    inp.value = '';
+    if (!cmd) return;
+    termHist.unshift(cmd); termIdx = -1;
+    termPrintCmd(cmd);
+
+    // built-ins
+    if (cmd === 'clear' || cmd === 'cls') { clearTerm(); return; }
+    if (cmd === 'help') {
+      ['  help        — Senarai arahan',
+       '  clear/cls   — Bersihkan terminal',
+       '  cd <path>   — Tukar direktori',
+       '  ls [path]   — Senarai fail',
+       '  pwd         — Direktori semasa',
+       '  cat <file>  — Baca fail',
+       '  python3 <f> — Jalankan skrip',
+       '  pip install — Pasang pakej',
+       '  ps aux      — Senarai proses',
+       '  free -h     — Guna memori',
+       '  pkg install — Pasang pakej Termux',
+      ].forEach(l => termPrint(l, 'dim'));
+      return;
+    }
+    if (cmd === 'pwd') { termPrint(termCwd); return; }
+
+    // send to server
+    try {
+      inp.disabled = true;
+      const r = await fetch('/api/terminal', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({cmd, cwd: termCwd})
+      });
+      const d = await r.json();
+      if (d.cwd) {
+        termCwd = d.cwd;
+        document.getElementById('termPsLbl').textContent = termCwd + '$ ';
+      }
+      if (d.output) {
+        d.output.split('\n').forEach(line => {
+          if (line.trim()) termPrint(line, d.error ? 'err' : '');
+        });
+      }
+      if (d.error && !d.output) termPrint('Error: ' + d.error, 'err');
+    } catch(err) {
+      termPrint('[ Server terminal tidak tersedia — sambung ke Flask ]', 'err');
+    } finally {
+      inp.disabled = false; inp.focus();
+    }
+  }
+
+  if (ev.key === 'ArrowUp') {
+    ev.preventDefault();
+    if (termIdx < termHist.length - 1) {
+      termIdx++;
+      document.getElementById('termIn').value = termHist[termIdx] || '';
+    }
+  }
+  if (ev.key === 'ArrowDown') {
+    ev.preventDefault();
+    if (termIdx > 0) { termIdx--; document.getElementById('termIn').value = termHist[termIdx] || ''; }
+    else { termIdx = -1; document.getElementById('termIn').value = ''; }
+  }
+}
+
+function clearTerm() {
+  document.getElementById('termBody').innerHTML = '';
+  termPrint('TeleBot Panel v2.1 · Terminal Ready', 'ok');
+  termPrint('Taip "help" untuk senarai arahan.', 'dim');
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════ */
+function e(s)    { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function eHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtSz(b){ return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'; }
+
+function toast(msg, type = 'inf') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'tout .25s ease forwards';
+    setTimeout(() => t.remove(), 250);
+  }, 3000);
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+(async () => {
+  clearTerm();
+  await loadLocs();
+  await browse('~');
+  pollStatus();
+  setInterval(pollStatus, 5000);
+})();
+</script>
+</body>
+</html>
